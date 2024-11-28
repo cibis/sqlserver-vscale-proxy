@@ -1,0 +1,9 @@
+﻿{
+  "proxyTCP1433": {
+    "localPort": 4433,
+    "protocol": "tcp",
+    "forwardIp": "127.0.0.1",
+    "forwardPort": 1433,
+    "dbConnectionString": "data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;TrustServerCertificate=True"
+  }
+}

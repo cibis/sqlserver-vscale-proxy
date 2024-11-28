@@ -1,0 +1,15 @@
+#kubectl apply -f sqlstorage-volume.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: azure-disk
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/opt/mssql"

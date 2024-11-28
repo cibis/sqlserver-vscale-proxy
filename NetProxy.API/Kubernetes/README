@@ -1,0 +1,34 @@
+#In order to setup the kn cluster run below commands
+
+cd \
+docker build -t mssql-proxy .
+
+minikube image load mssql-proxy:latest
+
+cd \Kubernetes\MSSQL\
+
+docker build -t mssql .
+
+minikube image load mssql:latest
+
+cd \Kubernetes\
+
+# Create the load balancing service
+kubectl apply -f sqlloadbalancer.yaml
+ 
+# Create external storage with PV and PVC
+kubectl apply -f sqlstorage-volume.yaml
+kubectl apply -f sqlstorage-volume-claim.yaml
+
+
+kubectl create secret generic mssql-secret --from-literal=SA_PASSWORD="[-ccI9$}V8q6\M&7q}a"
+
+
+minikube image load mssql-proxy:latest
+
+# Deploy the SQL Server 2019 container
+kubectl apply -f sqldeployment.yaml
+
+minikube service mssql-proxy-service
+
+#use \Postman\kubernetes api calls.postman_collection.json to start the proxy in order to be able to connect to the db server running in te cluster

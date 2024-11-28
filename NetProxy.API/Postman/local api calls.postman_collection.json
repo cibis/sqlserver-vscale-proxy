@@ -1,0 +1,172 @@
+{
+	"info": {
+		"_postman_id": "d21ddddd-bdf5-497e-93a0-72e4764ab6ba",
+		"name": "sqlserver-vscale-proxy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39958445"
+	},
+	"item": [
+		{
+			"name": "start",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"127.0.0.1\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/netproxy/start",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pausedstart",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"127.0.0.1\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/netproxy/start",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "transfer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"127.0.0.1\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/netproxy/transfer",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pausedtransfer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"127.0.0.1\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/netproxy/pausedtransfer?waitTime=15000",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"pausedtransfer"
+					],
+					"query": [
+						{
+							"key": "waitTime",
+							"value": "15000"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "stop",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/netproxy/stop",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"stop"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "unpause",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/netproxy/unpause",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"netproxy",
+						"unpause"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -1,0 +1,4 @@
+{
+  "DirectConnectionString": "data source=127.0.0.1,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;TrustServerCertificate=True",
+  "ProxyConnectionString": "data source=127.0.0.1,4433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;TrustServerCertificate=True"
+}
