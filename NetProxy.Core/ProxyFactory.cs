@@ -35,7 +35,7 @@ namespace NetProxy.Core
 
     public class ProxyFactory
     {
-        private object _criticalLock = new object();
+        private static object _criticalLock = new object();
 
         public volatile static List<IProxy> Proxies = new List<IProxy>();
 

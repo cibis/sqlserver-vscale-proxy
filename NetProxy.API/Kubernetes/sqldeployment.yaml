@@ -23,6 +23,13 @@ spec:
       - name: mssql
         image: mssql
         imagePullPolicy: Never
+        resources:
+          requests:
+            memory: "2002Mi"
+            cpu: "1002m"
+          limits:
+            memory: "5000Mi"
+            cpu: "2000m"
         env:
         - name: MSSQL_PID
           value: "Developer"
@@ -34,7 +41,7 @@ spec:
               name: mssql-secret
               key: SA_PASSWORD 
         - name: MSSQL_TCP_PORT
-          value: "4433"              
+          value: "1433"              
         volumeMounts:
         - name: mssqldb
           mountPath: /var/opt/mssql        

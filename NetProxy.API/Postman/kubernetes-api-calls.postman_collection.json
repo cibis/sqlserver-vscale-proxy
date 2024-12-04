@@ -1,0 +1,242 @@
+{
+	"info": {
+		"_postman_id": "7ff8cee3-cb0e-464b-a479-a6f049ecd003",
+		"name": "MK sqlserver proxy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39958445"
+	},
+	"item": [
+		{
+			"name": "start",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"mssql-service\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=mssql-service,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/start",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pausedstart",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": {{proxy-db-port}},\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"mssql-service\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=mssql-service,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/start",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "transfer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"mssql-service\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=mssql-service,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/transfer",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"transfer"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "pausedtransfer",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"localPort\": 4433,\r\n    \"protocol\": \"tcp\",\r\n    \"forwardIp\": \"mssql-service\",\r\n    \"forwardPort\": 1433,\r\n    \"dbConnectionString\": \"data source=mssql-service,1433;initial catalog=master;persist security info=True;user id=test_user;pwd=test_user_password;\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/pausedtransfer?waitTime=15000",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"pausedtransfer"
+					],
+					"query": [
+						{
+							"key": "waitTime",
+							"value": "15000"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "stop",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/stop",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"stop"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "reset",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/reset",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"reset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "unpause",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:{{proxy-api-port}}/netproxy/unpause",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{proxy-api-port}}",
+					"path": [
+						"netproxy",
+						"unpause"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "proxy-api-port",
+			"value": "8080",
+			"type": "string"
+		}
+	]
+}

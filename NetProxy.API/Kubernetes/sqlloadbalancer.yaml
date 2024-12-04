@@ -8,8 +8,8 @@ spec:
     app: mssql
   ports:
     - protocol: TCP
-      port: 4433
-      targetPort: 4433
+      port: 1433
+      targetPort: 1433
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -22,8 +22,8 @@ spec:
   ports:
     - protocol: TCP
       name: sqlserver
-      port: 1433
-      targetPort: 1433
+      port: 4433
+      targetPort: 4433
     - protocol: TCP
       name: api
       port: 8080

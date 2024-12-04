@@ -1,50 +1,54 @@
-NetProxy
+SQL Server vertical scaling proxy
 ========
 
-Netproxy is a simple ipv6/ipv4 UDP & TCP proxy based on .NET 5.0.
-Tested on *win10-x64* and *ubuntu.16.20-x64*.
+Original Netproxy is a simple ipv6/ipv4 UDP & TCP proxy based on .NET 5.0. 
+In this fork:
+- it was upgraded to .NET 8
+- removed UDP support
+- added API for microservice usage scenarios
+- added docker and minikube deployment files
+- added extra methods to cover scaling/deployment scenarios
+- added workload simulation with unit tests for direct api and kubernetes testing
+- added sql server adaptations 
+- added postman collections for direct api and kubernetes testing
 
 Why? 
 ====
-We needed a simple, crossplatform IPV6 compatible UDP forwarder, and couldn't find a satisfying solution. 
-Nginx was obviously a great candidate but building it on Windows with UDP forwarding enabled was quite a pain.
-
-The objective is to be able to expose as an ipv6 endpoint a server located in an ipv4 only server provider.
+The objective was to provide a solution for no downtime sql server vertical scaling/deployment scenarios
 
 Limitations
 ===========
-Each remote client is mapped to a port of the local server therefore:
-- The original IP of the client is hidden to the server the packets are forwarded to.
-- The number of concurrent clients is limited by the number of available ports in the server running the proxy.
+In current version was not possible to avoid some of the unit tests failing without the following adaptions in the workload functionality:
+- Disabled connection pooling
+- Automatic connection retry
 
-Disclaimer
-==========
-Error management exist, but is minimalist. IPV6 is not supported on the forwarding side.
+In case of sql server high workloads or long executing transactions it won't be possible to gracefully transfer the connections without dropping some of them.
 
 Usage
 =====
-- Compile for your platform following instructions at https://www.microsoft.com/net/core
-- Rewrite the `config.json` file to fit your need
-- Run NetProxy
+
+Graceful deployment
+- start the sql server proxy
+- Direct all traffic to the db through the proxy
+- Attempt a paused traffic transfer to the new sql server destination or attempt a traffic pause. The proxy will try to pause all incoming connections and drain existing ones. In case of failure it will resume the traffic without connections being dropped.
+- Perform the scaling/deployment operation on the server
+- Unpause the traffic to the database 
+
+Forced deployment will do the same as graceful one with the exception of they way how it will handle the traffic pause. After the defined wait time it will drop all the connections it didn't manage to drain. 
 
 Configuration
 =============
-`config.json` contains a map of named forwarding rules, for instance :
+Console app
+- configure config.json
+- run the app
+- the app will start redirecting traffic based on configuration
 
-    {
-     "http": {
-     "localport": 80,
-     "localip":"",
-     "protocol": "tcp",
-     "forwardIp": "xx.xx.xx.xx",
-     "forwardPort": 80
-     },
-    ...
-    }
+API service
+- run the service
+- using postman collection start/stop/pause/transfer the proxy through the api calls 
 
-- *localport* : The local port the forwarder should listen to.
-- *localip* : An optional local binding IP the forwarder should listen to. If empty or missing, it will listen to ANY_ADDRESS.
-- *protocol* : The protocol to forward. `tcp`,`udp`, or `any`.
-- *forwardIp* : The ip the traffic will be forwarded to.
-- *forwardPort* : The port the traffic will be forwarded to.
+Minikube(check sqlserver-vscale-proxy\NetProxy.API\Kubernetes\ folder for scripts and instructions)
+- build the docker image
+- run the commands to deploy the kubernetes cluster
+- using postman collection start/stop/pause/transfer the proxy through the api calls 
 

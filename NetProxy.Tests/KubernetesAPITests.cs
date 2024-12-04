@@ -2,13 +2,101 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using NetProxy.API.Controllers;
+using NetProxy.Core;
 using System.Data;
 using System.Diagnostics;
 using System.Reflection;
 
+
 namespace NetProxy.Tests
 {
-    public class APITests
+
+    public class NetProxyClient
+    {
+        private string clusterAPIport;
+        
+        public NetProxyClient()
+        {
+            IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("testconfig.json").AddEnvironmentVariables().Build();
+            clusterAPIport = ((string)configuration.GetValue(typeof(string), "ClusterAPIport"));
+        }                
+
+        public async Task UnPause()
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{clusterAPIport}/netproxy/unpause");
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+
+        }
+
+        public async Task PausedStart(ProxyConfig proxyConfig)
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{clusterAPIport}/netproxy/start");
+            var content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(proxyConfig), null, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+
+        }
+
+        public async Task Stop(int waitTime, bool forceStopAfterWaitTime = false)
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{clusterAPIport}/netproxy/stop");
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+        }
+
+        public async Task<bool> Transfer(ProxyConfig proxyConfig, int waitTime = 5000)
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{clusterAPIport}/netproxy/transfer");
+            var content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(proxyConfig), null, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+            return response.StatusCode == System.Net.HttpStatusCode.OK;
+        }
+
+        public async Task Start(ProxyConfig proxyConfig)
+        {
+
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{clusterAPIport}/netproxy/start");
+            string requestBody = Newtonsoft.Json.JsonConvert.SerializeObject(proxyConfig);
+            var content = new StringContent(requestBody, null, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+
+        }
+
+        public async Task<bool> PausedTransfer(ProxyConfig proxyConfig, int waitTime = 5000, bool forceStopAfterWaitTime = false)
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Post, $"http://127.0.0.1:{clusterAPIport}/netproxy/pausedtransfer?waitTime=15000");
+            var content = new StringContent(Newtonsoft.Json.JsonConvert.SerializeObject(proxyConfig), null, "application/json");
+            request.Content = content;
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+            return response.StatusCode == System.Net.HttpStatusCode.OK;
+        }
+
+        public async Task Reset()
+        {
+            var client = new HttpClient() { Timeout = TimeSpan.FromSeconds(60) };
+            var request = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:{clusterAPIport}/netproxy/reset");
+            var response = await client.SendAsync(request);
+            Trace.WriteLine(await response.Content.ReadAsStringAsync());
+        }
+    }
+
+    /// <summary>
+    /// Test NetProxy when running the proxy and the sql server in a Kubernetes cluster
+    /// </summary>
+    public class KubernetesAPITests
     {
         IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile("testconfig.json").AddEnvironmentVariables().Build();
 
@@ -25,22 +113,23 @@ namespace NetProxy.Tests
             }
 
             List<Task<bool>> tasks = new List<Task<bool>>();
+            Thread.Sleep(startDelay);
             for (int i = 0; i < threadNumber; i++)
             {
                 int threadIndex = i;
-                
+
                 tasks.Add(Task.Factory.StartNew(() =>
                 {
                     string op = Guid.NewGuid().ToString();
                     try
-                    {                    
+                    {
                         Random r = new Random(threadIndex);
-                        
+
                         while (!cancellationToken.IsCancellationRequested)
                         {
-                            string cnnStr = ((string)configuration.GetValue(typeof(string), "ProxyConnectionString"));
-
-                            var getConn = () => {
+                            string cnnStr = ((string)configuration.GetValue(typeof(string), "ProxyConnectionString")).Replace(",4433", "," + ((string)configuration.GetValue(typeof(string), "ClusterSQLServerPort")));
+                            var getConn = () =>
+                            {
                                 SqlConnection cnn = new SqlConnection(cnnStr);
                                 int connectTries = 5;
                                 bool failed = false;
@@ -51,9 +140,9 @@ namespace NetProxy.Tests
                                         cnn.Open();
                                         failed = false;
                                     }
-                                    catch(Exception ex)
+                                    catch (Exception ex)
                                     {
-                                        Trace.WriteLine($"===== thread {threadIndex}, error, {ex.Message} =====");
+                                        Trace.WriteLine($"===== HANDLED: thread {threadIndex}, error, {ex.Message} =====");
                                         failed = true;
                                         Thread.Sleep(1000);
                                     }
@@ -65,7 +154,7 @@ namespace NetProxy.Tests
                             using (SqlConnection cnn = getConn())
                             {
                                 Trace.WriteLine($" thread {threadIndex}, started query, waitTime {waitTime}, op {op}");
-                                
+
                                 using (var cmd = new SqlCommand()
                                 {
                                     CommandTimeout = commandTimeout,
@@ -108,27 +197,27 @@ namespace NetProxy.Tests
             Trace.WriteLine("==========================================================");
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
+                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 3000));
                 tasks.Add(Task.Factory.StartNew(() =>
                 {
                     try
                     {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         proxyService.Start(new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
-                        });
+                        }).Wait();
                         Thread.Sleep(commandTimeout);
                         cancellationTokenSource.Cancel();
                     }
@@ -147,59 +236,11 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
 
-        [Fact]
-        public async void ProxyPausedStartTest()
-        {
-            Trace.WriteLine("==========================================================");
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
-            try
-            {
-                List<Task<bool>> tasks = new List<Task<bool>>();
-                int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
-                tasks.Add(Task.Factory.StartNew(() =>
-                {
-                    try
-                    {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
-                        proxyService.PausedStart(new Core.ProxyConfig()
-                        {
-                            directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
-                            forwardPort = 1433,
-                            localPort = 4433,
-                            protocol = "tcp"
-                        });
-                        proxyService.UnPause();
-                        Thread.Sleep(commandTimeout);
-                        cancellationTokenSource.Cancel();
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
-                        return false;
-                    }
-                    return true;
-                }));
-                var results = await Task.WhenAll(tasks);
-
-                Assert.True(!results.Any(o => !o));
-            }
-            finally
-            {
-                Trace.WriteLine("========================TEST CLEANUP======================");
-                cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
-            }
-        }
 
 
         [Fact]
@@ -209,29 +250,29 @@ namespace NetProxy.Tests
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
             int commandTimeout = 10 * 1000;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 Task<bool> simulateSQLLoadTask;
                 Task<bool> netproxyTask;
-                tasks.Add(simulateSQLLoadTask = SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
+                tasks.Add(simulateSQLLoadTask = SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 3000));
                 tasks.Add(netproxyTask = Task.Factory.StartNew(() =>
                 {
                     try
                     {
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         proxyService.Start(new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
-                        });
+                        }).Wait();
                         Thread.Sleep(2000);
-                        proxyService.Stop(commandTimeout);
+                        proxyService.Stop(commandTimeout).Wait();
                         Thread.Sleep(commandTimeout + 2000);
                         cancellationTokenSource.Cancel();
                     }
@@ -250,7 +291,7 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
 
@@ -261,36 +302,37 @@ namespace NetProxy.Tests
             Trace.WriteLine("==========================================================");
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
+                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 3000));
                 tasks.Add(Task.Factory.StartNew(() =>
                 {
                     try
                     {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         var proyConfig = new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
                         };
-                        proxyService.Start(proyConfig);
+                        proxyService.Start(proyConfig).Wait();
                         Thread.Sleep(2000);
-                        if (!proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout).IsOk())
+                        if (!Task.Run(() => { return proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout); }).Result)
                         {
                             Trace.WriteLine("Proxy was not transfered");
                             cancellationTokenSource.Cancel();
                             return false;
                         }
-                        proxyService.UnPause();
+                        proxyService.UnPause().Wait();
+                        Thread.Sleep(10000);
                         cancellationTokenSource.Cancel();
                     }
                     catch (Exception ex)
@@ -308,7 +350,7 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
 
@@ -318,30 +360,30 @@ namespace NetProxy.Tests
             Trace.WriteLine("==========================================================");
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
+                tasks.Add(SimulateSQLLoad(5, commandTimeout, commandTimeout - 2000, cancellationToken, 3000));
                 tasks.Add(Task.Factory.StartNew(() =>
                 {
                     try
                     {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         var proyConfig = new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
                         };
-                        proxyService.Start(proyConfig);
+                        proxyService.Start(proyConfig).Wait();
                         Thread.Sleep(2000);
-                        if (!proxyService.Transfer(proyConfig, waitTime: commandTimeout).IsOk())
+                        if (!Task.Run(() => { return proxyService.Transfer(proyConfig, waitTime: commandTimeout); }).Result)
                         {
                             Trace.WriteLine("Proxy was not transfered");
                             cancellationTokenSource.Cancel();
@@ -364,7 +406,7 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
 
@@ -374,37 +416,37 @@ namespace NetProxy.Tests
             Trace.WriteLine("==========================================================");
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(10, commandTimeout, commandTimeout - 2000, cancellationToken, 1000));
+                tasks.Add(SimulateSQLLoad(8, commandTimeout, commandTimeout - 2000, cancellationToken, 3000));
                 Task<bool> netproxyTask;
                 tasks.Add(netproxyTask = Task.Factory.StartNew(() =>
                 {
                     try
                     {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         var proyConfig = new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
                         };
-                        proxyService.Start(proyConfig);
+                        proxyService.Start(proyConfig).Wait();
                         Thread.Sleep(2000);
-                        if (!proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout, forceStopAfterWaitTime: true).IsOk())
+                        if (!Task.Run(() => { return proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout, forceStopAfterWaitTime: true); }).Result)
                         {
                             Trace.WriteLine("Proxy was not transfered");
                             cancellationTokenSource.Cancel();
                             return false;
                         }
-                        proxyService.UnPause();
+                        proxyService.UnPause().Wait();
                         cancellationTokenSource.Cancel();
                     }
                     catch (Exception ex)
@@ -422,7 +464,7 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
 
@@ -432,37 +474,43 @@ namespace NetProxy.Tests
             Trace.WriteLine("==========================================================");
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
-            NetProxyController proxyService = new NetProxyController();
+            NetProxyClient proxyService = new NetProxyClient();
+            proxyService.Reset().Wait();
             try
             {
                 List<Task<bool>> tasks = new List<Task<bool>>();
                 int commandTimeout = 10 * 1000;
-                tasks.Add(SimulateSQLLoad(10, commandTimeout, commandTimeout - 2000, cancellationToken, 1000, true));
+                tasks.Add(SimulateSQLLoad(8, commandTimeout, commandTimeout - 2000, cancellationToken, 3000, true));
                 tasks.Add(Task.Factory.StartNew(() =>
                 {
                     try
                     {
 
-                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString"));
+                        string cnnStr = ((string)configuration.GetValue(typeof(string), "DirectConnectionString")).Replace("127.0.0.1", "mssql-service");
                         var proyConfig = new Core.ProxyConfig()
                         {
                             directConnectionString = cnnStr,
-                            forwardIp = "127.0.0.1",
-                            localIp = "127.0.0.1",
+                            forwardIp = "mssql-service",
                             forwardPort = 1433,
                             localPort = 4433,
                             protocol = "tcp"
                         };
-                        proxyService.Start(proyConfig);
+                        proxyService.Start(proyConfig).Wait();
                         Thread.Sleep(2000);
+                        Trace.WriteLine("Starting proxy transfer");
                         for (int i = 0; i < 10; i++)
                         {
-                            if (!proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout).IsOk())
+                            if (!Task.Run(() => { return proxyService.PausedTransfer(proyConfig, waitTime: commandTimeout); }).Result)
                                 Trace.WriteLine("Proxy was not transfered");
                             else
+                            {
+                                Trace.WriteLine("Proxy was transfered");
                                 break;
+                            }
                         }
-                        proxyService.UnPause();
+                        proxyService.UnPause().Wait();
+                        Trace.WriteLine("Unpausing proxy");
+
                         cancellationTokenSource.Cancel();
                     }
                     catch (Exception ex)
@@ -480,7 +528,7 @@ namespace NetProxy.Tests
             {
                 Trace.WriteLine("========================TEST CLEANUP======================");
                 cancellationTokenSource.Cancel();
-                proxyService.Stop(waitTime: 0, forceStopAfterWaitTime: true);
+                proxyService.Reset().Wait();
             }
         }
     }

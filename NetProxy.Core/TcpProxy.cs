@@ -74,6 +74,18 @@ namespace NetProxy.Core
                         try
                         {
                             localServer.Stop();
+                            try
+                            {
+                                foreach (var c in connections)
+                                {
+                                    try
+                                    {
+                                        c.Stop();
+                                    }
+                                    catch { }
+                                }
+                            }
+                            catch { }
                         }
                         catch { }
                         _fullyStopped = true;

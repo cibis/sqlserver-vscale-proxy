@@ -28,7 +28,7 @@ namespace NetProxy.API.Controllers
     [Route("[controller]")]
     public class NetProxyController : ControllerBase
     {
-        private object _criticalLock = new object();
+        private static object _criticalLock = new object();
 
         [HttpPost]
         [Route("start")]
@@ -116,12 +116,31 @@ namespace NetProxy.API.Controllers
                 if (!Task.Run(() => StopProxies(waitTime, forceStopAfterWaitTime)).Result)
                 {
                     Trace.WriteLine("SQL proxy FAILED to stop");
-                    return BadRequest();
+                    return BadRequest("SQL proxy FAILED to stop");
                 }
             }
             
             Trace.WriteLine("SQL proxy STOPPED");
-            return Ok();
+            return Ok("SQL proxy STOPPED");
+        }
+
+        [HttpGet]
+        [Route("reset")]
+        public IActionResult Reset()
+        {
+            Trace.WriteLine($"SQL proxy reset");
+            ProxyPause.WaitHandle.Set();
+            if (ProxyFactory.Proxies.Count > 0)
+            {
+                if (!Task.Run(() => StopProxies(0, true)).Result)
+                {
+                    Trace.WriteLine("SQL proxy FAILED to stop");
+                    return BadRequest("SQL proxy FAILED to stop");
+                }
+            }
+
+            Trace.WriteLine("SQL proxy was reset");
+            return Ok("SQL proxy was reset");
         }
 
 
